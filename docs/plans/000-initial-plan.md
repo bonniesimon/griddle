@@ -294,3 +294,72 @@ rendering full-resolution images instead of thumbnails — that is the first thi
   Set `nodeLinker: node-modules` in `.yarnrc.yml` as part of M1, before installing anything. Symptoms if missed are
   confusing module-resolution errors at bundle time rather than an obvious install failure.
 
+
+---
+
+## As-built notes
+
+Recorded during implementation. Two of these change behaviour the plan above describes, so the plan text alone is no
+longer the whole truth.
+
+### Deviation: reorder library
+
+The plan chose `react-native-reorderable-list`. It cannot do the job: `numColumns` is in its `OmittedProps`, so it is
+single-column only and cannot render a 3-up grid. This is exactly the friction the Risks section anticipated, though
+for a different reason than the Reanimated version.
+
+Swapped to **`react-native-sortables`** (`Sortable.Grid`), which has first-class grid support via a `columns` prop,
+supports Reanimated >= 3 so it works with the installed Reanimated 4, and has built-in haptics. Its `onDragEnd` gives
+`{ key, toIndex }`, which maps directly onto `movePostToGridPosition(postId, targetPosition)`.
+
+### Deviation: how archived posts remember their slot
+
+The plan said two things that cannot both hold:
+
+- archiving *retains* `gridPosition`, and restore returns a post "to its original relative slot" (the M5 checkpoint);
+- archived posts are *reindexed among themselves* to `0..m-1`.
+
+Reindexing archived posts destroys the remembered slot. Archive the post at position 3 of 10, reindex the archive to
+`0`, and restoring it puts it top-left rather than back at 3 — contradicting the M5 checkpoint.
+
+Resolved in favour of the checkpoint, which is the user-visible requirement:
+
+- an archived post **keeps the `gridPosition` it had**, and nothing reindexes it while archived;
+- restore clamps that remembered position into the current grid and splices the post in there;
+- the archive screen orders by **`archivedAt`, newest first**, which is what an archive view wants anyway.
+
+`__tests__/ordering.test.ts` pins all of this, including the two awkward cases: restoring after the grid was reordered
+underneath, and restoring when the remembered slot is now past the end of a shrunken grid.
+
+### Toolchain versions that are pinned deliberately
+
+Scaffolded on Expo SDK 57 / React Native 0.86.2 / React 19.2.3. Several packages resolve to versions that do not work
+and were pinned down rather than left to float:
+
+- **`@babel/core` at `^7.28`, not 8.** The whole Expo/RN Babel ecosystem is still `^7.x`; `yarn add -D @babel/core`
+  grabs 8.x and breaks Metro and Jest transforms.
+- **Jest at `29`, not 30.** `jest-expo@57` depends on `@jest/*@^29`. With Jest 30 the runtime dies on
+  `this._moduleMocker.clearMocksOnScope is not a function`.
+- **ESLint at `9`, not 10.** `eslint-config-expo@57` pulls `eslint-plugin-react`, which crashes on ESLint 10 with
+  `contextOrFilename.getFilename is not a function`.
+- **`@react-native/jest-preset` and `test-renderer` are explicit dev dependencies.** Both are now unfulfilled peers:
+  `jest-expo` no longer bundles the RN preset, and `@testing-library/react-native@14` replaced the deprecated
+  `react-test-renderer` with `test-renderer`.
+- **`react-native-worklets` is a direct dependency.** Reanimated 4 moved worklets into it. `babel-preset-expo` adds the
+  plugin automatically when the package is present, so `babel.config.js` needs nothing but the preset.
+
+### Testing note
+
+`@testing-library/react-native@14`'s `render` is **async** — `await render(...)` before touching `screen`, or every
+query throws "`render` function has not been called". v14 also dropped the `UNSAFE_*` queries, so component tests
+assert against host elements found by `testID`.
+
+Because the carousel's active index cannot be driven through a host element, `Carousel` exposes two pure functions,
+`activeIndexFromViewableItems` and `aspectRatioClampedToPortraitLimit`, and the dots live in their own `CarouselDots`
+component that takes `activeIndex` as a prop. Both halves of "the dot advances on scroll" are covered directly.
+
+### Known limitation: backup size
+
+`src/storage/backup.ts` embeds every referenced image as base64 in one JSON file, because there is no zip dependency.
+That is fine for the tens-to-low-hundreds of posts this app targets, but it builds the whole bundle in memory. A grid
+of several hundred full-resolution photos will produce a very large file and could run the device out of memory.
