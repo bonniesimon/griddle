@@ -1,12 +1,35 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { primeMediaCache } from '@/storage/mediaStore';
 import { usePalette } from '@/theme/usePalette';
 
 const RootLayout = () => {
   const palette = usePalette();
+  const [isMediaCachePrimed, setIsMediaCachePrimed] = useState(false);
+
+  useEffect(() => {
+    primeMediaCache().finally(() => setIsMediaCachePrimed(true));
+  }, []);
+
+  if (!isMediaCachePrimed) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: palette.background,
+        }}
+      >
+        <ActivityIndicator color={palette.secondaryText} />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.background }}>

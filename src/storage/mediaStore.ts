@@ -19,6 +19,8 @@ const withoutTrailingSlash = (uri: string) => (uri.endsWith('/') ? uri.slice(0, 
 export const resolveMediaUri = (relativePath: RelativeMediaPath) =>
   `${withoutTrailingSlash(Paths.document.uri)}/${relativePath}`;
 
+export const primeMediaCache = async () => {};
+
 const ensureMediaDirectoryExists = () => {
   const mediaDirectory = new Directory(Paths.document, MEDIA_DIRECTORY_NAME);
   if (!mediaDirectory.exists) {
