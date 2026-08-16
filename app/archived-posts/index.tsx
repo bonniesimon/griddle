@@ -28,7 +28,7 @@ const ArchivedPostsScreen = () => {
       <View style={[styles.screen, { backgroundColor: palette.background }]}>
         <EmptyState
           title="Nothing archived"
-          message="Long-press a post in your grid to pull it out without deleting it."
+          message="Open a post and tap Archive to pull it out of the grid without deleting it."
         />
       </View>
     );

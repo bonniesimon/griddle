@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import type Animated from 'react-native-reanimated';
 import type { AnimatedRef } from 'react-native-reanimated';
 import Sortable, { type SortableGridRenderItemInfo } from 'react-native-sortables';
@@ -28,26 +28,12 @@ export const PostGrid = ({
 }: PostGridProps) => {
   const router = useRouter();
   const movePostToGridPosition = useAppStore((state) => state.movePostToGridPosition);
-  const archivePost = useAppStore((state) => state.archivePost);
-
-  const confirmArchive = useCallback(
-    (postId: string) =>
-      Alert.alert('Archive post?', 'It leaves the grid but stays in your archive.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Archive', onPress: () => archivePost(postId) },
-      ]),
-    [archivePost]
-  );
 
   const renderGridCell = useCallback(
     ({ item }: SortableGridRenderItemInfo<Post>) => (
-      <GridCell
-        post={item}
-        onPress={() => router.push(`/posts/${item.id}`)}
-        onLongPress={() => confirmArchive(item.id)}
-      />
+      <GridCell post={item} onPress={() => router.push(`/posts/${item.id}`)} />
     ),
-    [router, confirmArchive]
+    [router]
   );
 
   return (
