@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { importAvatarIntoAppStorage, resolveMediaUri } from '@/storage/mediaStore';
+import { pickImagesFromDevice } from '@/storage/pickImagesFromDevice';
 import type { AccountDraft } from '@/store/useAppStore';
 import { avatarDiameter, spacing, typeScale } from '@/theme/tokens';
 import { usePalette } from '@/theme/usePalette';
@@ -33,7 +34,7 @@ export const AccountForm = ({ initialDraft, submitLabel, onSubmit }: AccountForm
       return;
     }
 
-    const picker = await ImagePicker.launchImageLibraryAsync({
+    const picker = await pickImagesFromDevice({
       mediaTypes: ['images'],
       allowsMultipleSelection: false,
       quality: 1,

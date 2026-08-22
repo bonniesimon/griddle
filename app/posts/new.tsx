@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { importImageIntoAppStorage, type PickedImage } from '@/storage/mediaStore';
+import { pickImagesFromDevice } from '@/storage/pickImagesFromDevice';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, typeScale } from '@/theme/tokens';
 import { usePalette } from '@/theme/usePalette';
@@ -37,7 +38,7 @@ const NewPostScreen = () => {
       return;
     }
 
-    const picker = await ImagePicker.launchImageLibraryAsync({
+    const picker = await pickImagesFromDevice({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
       selectionLimit: remainingMediaSlots,
