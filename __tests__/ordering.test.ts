@@ -1,5 +1,5 @@
 import {
-  addPostToTopOfGrid,
+  addPostsToTopOfGrid,
   archivePost,
   archivedPostsNewestFirst,
   gridPostsInDisplayOrder,
@@ -63,7 +63,7 @@ describe('grid ordering', () => {
     const grid = buildGrid(3);
     const newPost = buildPost({ id: 'fresh', gridPosition: 0 });
 
-    const withNewPost = addPostToTopOfGrid(grid, newPost);
+    const withNewPost = addPostsToTopOfGrid(grid, [newPost]);
 
     expect(gridIdsInOrder(withNewPost)).toEqual([
       'fresh',
@@ -72,6 +72,51 @@ describe('grid ordering', () => {
       'account-primary-post-2',
     ]);
     expect(gridPositions(withNewPost)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('keeps a batch in pick order rather than reversing it', () => {
+    const grid = buildGrid(2);
+    const batch = ['first', 'second', 'third'].map((id) => buildPost({ id, gridPosition: 0 }));
+
+    const withBatch = addPostsToTopOfGrid(grid, batch);
+
+    expect(gridIdsInOrder(withBatch)).toEqual([
+      'first',
+      'second',
+      'third',
+      'account-primary-post-0',
+      'account-primary-post-1',
+    ]);
+  });
+
+  it('reindexes positions contiguously across the batch and the existing grid', () => {
+    const batch = ['first', 'second'].map((id) => buildPost({ id, gridPosition: 0 }));
+
+    const withBatch = addPostsToTopOfGrid(buildGrid(3), batch);
+
+    expect(gridPositions(withBatch)).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('leaves the grid untouched for an empty batch', () => {
+    const grid = buildGrid(3);
+
+    expect(addPostsToTopOfGrid(grid, [])).toBe(grid);
+  });
+
+  it('leaves other accounts and archived posts alone', () => {
+    const grid = [
+      ...buildGrid(2),
+      ...buildGrid(2, OTHER_ACCOUNT),
+      buildPost({ id: 'archived', gridPosition: 5, isArchived: true, archivedAt: 2_000 }),
+    ];
+
+    const withBatch = addPostsToTopOfGrid(grid, [buildPost({ id: 'fresh', gridPosition: 0 })]);
+
+    expect(gridIdsInOrder(withBatch, OTHER_ACCOUNT)).toEqual([
+      'account-secondary-post-0',
+      'account-secondary-post-1',
+    ]);
+    expect(withBatch.find((post) => post.id === 'archived')?.gridPosition).toBe(5);
   });
 });
 

@@ -12,26 +12,72 @@ import {
   View,
 } from 'react-native';
 
-import { importImageIntoAppStorage, type PickedImage } from '@/storage/mediaStore';
+import {
+  deleteMediaFiles,
+  importImageIntoAppStorage,
+  type PickedImage,
+} from '@/storage/mediaStore';
 import { pickImagesFromDevice } from '@/storage/pickImagesFromDevice';
 import { useAppStore } from '@/store/useAppStore';
 import { spacing, typeScale } from '@/theme/tokens';
 import { usePalette } from '@/theme/usePalette';
-import { MAX_MEDIA_PER_POST, type Media } from '@/types';
+import {
+  describeChosenMode,
+  describeImportOutcome,
+  photoCapacityFor,
+  type ImportMode,
+  type Media,
+} from '@/types';
 
+import { ImportModeSheet } from '@/components/ImportModeSheet';
 import { MediaStrip } from '@/components/MediaStrip';
+
+type ImportProgress = {
+  finishedCount: number;
+  totalCount: number;
+};
+
+const describeImportProgress = ({ finishedCount, totalCount }: ImportProgress) =>
+  `Importing ${Math.min(finishedCount + 1, totalCount)} of ${totalCount}`;
 
 const NewPostScreen = () => {
   const palette = usePalette();
   const router = useRouter();
-  const createPostFromMedia = useAppStore((state) => state.createPostFromMedia);
+  const createPostsFromImport = useAppStore((state) => state.createPostsFromImport);
   const [importedMedia, setImportedMedia] = useState<Media[]>([]);
+  const [importMode, setImportMode] = useState<ImportMode | null>(null);
+  const [photosAwaitingModeChoice, setPhotosAwaitingModeChoice] = useState<PickedImage[] | null>(
+    null
+  );
   const [caption, setCaption] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgress | null>(null);
 
-  const remainingMediaSlots = MAX_MEDIA_PER_POST - importedMedia.length;
+  const remainingMediaSlots = photoCapacityFor(importMode) - importedMedia.length;
+  const isBuildingSeparatePosts = importMode === 'separatePosts';
+  const canChangeMode = importMode !== null && importedMedia.length > 1;
+  const isImporting = importProgress !== null;
 
-  const pickAndImportImages = async () => {
+  const importPickedPhotosInOrder = async (pickedImages: PickedImage[]) => {
+    if (pickedImages.length === 0) return;
+
+    setImportProgress({ finishedCount: 0, totalCount: pickedImages.length });
+    const newMedia: Media[] = [];
+
+    try {
+      for (const picked of pickedImages) {
+        newMedia.push(await importImageIntoAppStorage(picked));
+        setImportProgress({ finishedCount: newMedia.length, totalCount: pickedImages.length });
+      }
+      setImportedMedia((existing) => [...existing, ...newMedia]);
+    } catch {
+      deleteMediaFiles(newMedia);
+      Alert.alert('Could not import', 'Something went wrong copying those photos.');
+    } finally {
+      setImportProgress(null);
+    }
+  };
+
+  const pickPhotos = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert('Photo access needed', 'Allow photo access to add posts to your grid.');
@@ -47,27 +93,42 @@ const NewPostScreen = () => {
     });
     if (picker.canceled) return;
 
-    setIsImporting(true);
-    try {
-      const pickedImages: PickedImage[] = picker.assets.map((asset) => ({
-        uri: asset.uri,
-        width: asset.width,
-        height: asset.height,
-      }));
-      const newMedia = await Promise.all(pickedImages.map(importImageIntoAppStorage));
-      setImportedMedia((existing) => [...existing, ...newMedia].slice(0, MAX_MEDIA_PER_POST));
-    } catch {
-      Alert.alert('Could not import', 'Something went wrong copying those photos.');
-    } finally {
-      setIsImporting(false);
+    const pickedImages: PickedImage[] = picker.assets.map((asset) => ({
+      uri: asset.uri,
+      width: asset.width,
+      height: asset.height,
+    }));
+
+    const needsModeChoice = importMode === null && importedMedia.length + pickedImages.length > 1;
+    if (needsModeChoice) {
+      setPhotosAwaitingModeChoice(pickedImages);
+      return;
     }
+
+    await importPickedPhotosInOrder(pickedImages);
   };
 
-  const savePost = () => {
-    const createdPost = createPostFromMedia(importedMedia, caption.trim());
-    if (!createdPost) return;
+  const applyChosenMode = async (chosenMode: ImportMode) => {
+    const pickedImages = photosAwaitingModeChoice ?? [];
+    setImportMode(chosenMode);
+    setPhotosAwaitingModeChoice(null);
+    await importPickedPhotosInOrder(pickedImages);
+  };
+
+  const removePhotoAt = (removedIndex: number) => {
+    const remainingMedia = importedMedia.filter((_, index) => index !== removedIndex);
+    setImportedMedia(remainingMedia);
+    if (remainingMedia.length === 0) setImportMode(null);
+  };
+
+  const savePosts = () => {
+    const createdPosts = createPostsFromImport(importedMedia, caption.trim(), importMode);
+    if (createdPosts.length === 0) return;
     router.back();
   };
+
+  const pickLabel =
+    importedMedia.length === 0 ? 'Choose photos' : `Add more (${remainingMediaSlots} left)`;
 
   return (
     <ScrollView
@@ -75,47 +136,58 @@ const NewPostScreen = () => {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <MediaStrip
-        media={importedMedia}
-        onRemoveMediaAt={(index) =>
-          setImportedMedia((existing) => existing.filter((_, position) => position !== index))
-        }
-      />
+      <MediaStrip media={importedMedia} onRemoveMediaAt={removePhotoAt} />
+
+      {canChangeMode ? (
+        <View style={[styles.modeRow, { borderColor: palette.separator }]}>
+          <Text style={[styles.modeLabel, { color: palette.primaryText }]}>
+            {describeChosenMode(importMode, importedMedia.length)}
+          </Text>
+          <Pressable onPress={() => setPhotosAwaitingModeChoice([])} testID="change-import-mode">
+            <Text style={[styles.modeAction, { color: palette.accent }]}>Change</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       <Pressable
         style={[styles.pickButton, { borderColor: palette.separator }]}
-        onPress={pickAndImportImages}
+        onPress={pickPhotos}
         disabled={isImporting || remainingMediaSlots === 0}
       >
-        {isImporting ? (
-          <ActivityIndicator color={palette.secondaryText} />
+        {importProgress ? (
+          <View style={styles.importingRow}>
+            <ActivityIndicator color={palette.secondaryText} />
+            {importProgress.totalCount > 1 ? (
+              <Text style={[styles.hint, { color: palette.secondaryText }]}>
+                {describeImportProgress(importProgress)}
+              </Text>
+            ) : null}
+          </View>
         ) : (
-          <Text style={[styles.pickLabel, { color: palette.accent }]}>
-            {importedMedia.length === 0
-              ? 'Choose photos'
-              : `Add more (${remainingMediaSlots} left)`}
-          </Text>
+          <Text style={[styles.pickLabel, { color: palette.accent }]}>{pickLabel}</Text>
         )}
       </Pressable>
 
-      <TextInput
-        style={[
-          styles.captionInput,
-          { color: palette.primaryText, borderColor: palette.separator },
-        ]}
-        placeholder="Write a caption…"
-        placeholderTextColor={palette.secondaryText}
-        value={caption}
-        onChangeText={setCaption}
-        multiline
-      />
+      {isBuildingSeparatePosts ? null : (
+        <TextInput
+          style={[
+            styles.captionInput,
+            { color: palette.primaryText, borderColor: palette.separator },
+          ]}
+          placeholder="Write a caption…"
+          placeholderTextColor={palette.secondaryText}
+          value={caption}
+          onChangeText={setCaption}
+          multiline
+        />
+      )}
 
       <Pressable
         style={[
           styles.saveButton,
           { backgroundColor: importedMedia.length > 0 ? palette.accent : palette.placeholder },
         ]}
-        onPress={savePost}
+        onPress={savePosts}
         disabled={importedMedia.length === 0}
       >
         <Text
@@ -124,15 +196,25 @@ const NewPostScreen = () => {
             { color: importedMedia.length > 0 ? '#FFFFFF' : palette.secondaryText },
           ]}
         >
-          Add to grid
+          {describeImportOutcome(importMode, importedMedia.length)}
         </Text>
       </Pressable>
 
       <View style={styles.hintRow}>
         <Text style={[styles.hint, { color: palette.secondaryText }]}>
-          The first photo becomes the grid cover. You can change it later.
+          {isBuildingSeparatePosts
+            ? 'Each photo becomes its own post. You can caption them separately later.'
+            : 'The first photo becomes the grid cover. You can change it later.'}
         </Text>
       </View>
+
+      {photosAwaitingModeChoice ? (
+        <ImportModeSheet
+          photoCount={importedMedia.length + photosAwaitingModeChoice.length}
+          onChooseMode={applyChosenMode}
+          onCancel={() => setPhotosAwaitingModeChoice(null)}
+        />
+      ) : null}
     </ScrollView>
   );
 };
@@ -141,6 +223,23 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.roomy,
     gap: spacing.roomy,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 10,
+    paddingHorizontal: spacing.regular,
+    paddingVertical: spacing.snug,
+  },
+  modeLabel: {
+    fontSize: typeScale.body,
+    fontWeight: '600',
+  },
+  modeAction: {
+    fontSize: typeScale.body,
+    fontWeight: '600',
   },
   pickButton: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -151,6 +250,11 @@ const styles = StyleSheet.create({
   pickLabel: {
     fontSize: typeScale.emphasis,
     fontWeight: '600',
+  },
+  importingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.snug,
   },
   captionInput: {
     minHeight: 96,

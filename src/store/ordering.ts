@@ -55,13 +55,18 @@ export const movePostToGridPosition = (posts: Post[], postId: string, targetPosi
   return replacingPostsOf(posts, movingPost.accountId, withGridPositionsReassigned(remaining));
 };
 
-export const addPostToTopOfGrid = (posts: Post[], newPost: Post) => {
-  const gridOrder = gridPostsInDisplayOrder(posts, newPost.accountId);
-  const withNewPostFirst = [{ ...newPost, isArchived: false }, ...gridOrder];
+export const addPostsToTopOfGrid = (posts: Post[], newPosts: Post[]) => {
+  const [firstNewPost] = newPosts;
+  if (!firstNewPost) return posts;
+
+  const accountId = firstNewPost.accountId;
+  const unarchivedNewPosts = newPosts.map((post) => ({ ...post, isArchived: false }));
+  const withNewPostsFirst = [...unarchivedNewPosts, ...gridPostsInDisplayOrder(posts, accountId)];
+
   return replacingPostsOf(
-    [...posts, newPost],
-    newPost.accountId,
-    withGridPositionsReassigned(withNewPostFirst)
+    [...posts, ...newPosts],
+    accountId,
+    withGridPositionsReassigned(withNewPostsFirst)
   );
 };
 

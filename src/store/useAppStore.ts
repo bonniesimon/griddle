@@ -9,10 +9,16 @@ import {
   migratePersistedState,
   persistedStorage,
 } from '@/storage/persist';
-import { MAX_MEDIA_PER_POST, type Account, type Media, type Post } from '@/types';
+import {
+  MAX_MEDIA_PER_POST,
+  type Account,
+  type ImportMode,
+  type Media,
+  type Post,
+} from '@/types';
 
 import {
-  addPostToTopOfGrid as withPostAddedToTopOfGrid,
+  addPostsToTopOfGrid as withPostsAddedToTopOfGrid,
   archivePost as withPostArchived,
   movePostToGridPosition as withPostMovedToGridPosition,
   moveMediaWithinPost as withMediaMovedWithinPost,
@@ -43,7 +49,7 @@ type AppState = {
   deleteAccount: (accountId: string) => void;
   switchToAccount: (accountId: string) => void;
   ensureAtLeastOneAccountExists: () => void;
-  createPostFromMedia: (media: Media[], caption: string) => Post | null;
+  createPostsFromImport: (media: Media[], caption: string, importMode: ImportMode | null) => Post[];
   updateCaption: (postId: string, caption: string) => void;
   setGridCoverIndex: (postId: string, gridCoverIndex: number) => void;
   moveMediaWithinPost: (postId: string, fromIndex: number, toIndex: number) => void;
@@ -136,24 +142,29 @@ export const useAppStore = create<AppState>()(
         state.createAccount({});
       },
 
-      createPostFromMedia: (media, caption) => {
+      createPostsFromImport: (media, caption, importMode) => {
         const { activeAccountId } = get();
-        if (!activeAccountId || media.length === 0) return null;
+        if (!activeAccountId || media.length === 0) return [];
 
-        const post: Post = {
+        const buildPost = (postMedia: Media[], postCaption: string, gridPosition: number): Post => ({
           id: createId(),
           accountId: activeAccountId,
-          media: media.slice(0, MAX_MEDIA_PER_POST),
+          media: postMedia,
           gridCoverIndex: 0,
-          caption,
-          gridPosition: 0,
+          caption: postCaption,
+          gridPosition,
           isArchived: false,
           archivedAt: null,
           createdAt: Date.now(),
-        };
+        });
 
-        set((state) => ({ posts: withPostAddedToTopOfGrid(state.posts, post) }));
-        return post;
+        const posts =
+          importMode === 'separatePosts'
+            ? media.map((item, index) => buildPost([item], '', index))
+            : [buildPost(media.slice(0, MAX_MEDIA_PER_POST), caption, 0)];
+
+        set((state) => ({ posts: withPostsAddedToTopOfGrid(state.posts, posts) }));
+        return posts;
       },
 
       updateCaption: (postId, caption) =>
