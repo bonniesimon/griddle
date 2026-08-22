@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Grid Preview",
-    "slug": "prejudice",
-    "scheme": "gridpreview",
+    "name": "Griddle",
+    "slug": "griddle",
+    "scheme": "griddle",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "dev.indie.gridpreview"
+      "bundleIdentifier": "dev.indie.griddle"
     },
     "android": {
-      "package": "dev.indie.gridpreview",
+      "package": "dev.indie.griddle",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,7 +32,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Grid Preview needs your photo library so you can lay out posts before publishing them."
+          "photosPermission": "Griddle needs your photo library so you can lay out posts before publishing them."
         }
       ],
       "expo-sharing"
