@@ -38,7 +38,7 @@ const AccountsScreen = () => {
           try {
             const restored = await readBackupFromPickedFile();
             if (!restored) {
-              Alert.alert('Nothing restored', 'That file is not a Grid Preview backup.');
+              Alert.alert('Nothing restored', 'That file is not a Griddle backup.');
               return;
             }
             replaceEverythingFromBackup(restored.accounts, restored.posts);

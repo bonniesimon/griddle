@@ -4,7 +4,7 @@ import { PERSISTED_SCHEMA_VERSION } from './persist';
 import { primeMediaCache, resolveMediaUri } from './mediaStore.web';
 import { writeBlob } from './mediaDatabase.web';
 
-const BACKUP_FILE_NAME = 'grid-preview-backup.json';
+const BACKUP_FILE_NAME = 'griddle-backup.json';
 
 export type BackupBundle = {
   schemaVersion: number;

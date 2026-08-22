@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createJSONStorage } from 'zustand/middleware';
 
-export const PERSISTED_STORE_KEY = 'grid-preview-store';
+export const PERSISTED_STORE_KEY = 'griddle-store';
 export const PERSISTED_SCHEMA_VERSION = 1;
 
 export const persistedStorage = createJSONStorage(() => AsyncStorage);

@@ -6,7 +6,7 @@ import type { Account, Post, RelativeMediaPath } from '@/types';
 import { PERSISTED_SCHEMA_VERSION } from './persist';
 import { resolveMediaUri } from './mediaStore';
 
-const BACKUP_FILE_NAME = 'grid-preview-backup.json';
+const BACKUP_FILE_NAME = 'griddle-backup.json';
 const MEDIA_DIRECTORY_NAME = 'media';
 
 export type BackupBundle = {

@@ -1,6 +1,6 @@
 import type { RelativeMediaPath } from '@/types';
 
-const DATABASE_NAME = 'grid-preview-media';
+const DATABASE_NAME = 'griddle-media';
 const DATABASE_VERSION = 1;
 const BLOB_STORE_NAME = 'files';
 
