@@ -363,3 +363,18 @@ component that takes `activeIndex` as a prop. Both halves of "the dot advances o
 `src/storage/backup.ts` embeds every referenced image as base64 in one JSON file, because there is no zip dependency.
 That is fine for the tens-to-low-hundreds of posts this app targets, but it builds the whole bundle in memory. A grid
 of several hundred full-resolution photos will produce a very large file and could run the device out of memory.
+
+### Rename: prejudice to Griddle
+
+The working name `prejudice` was a pun on pre-judging posts before publishing. It reads as bias against people
+wherever a user actually sees it, so the app is now **Griddle** — a pun on the grid, which is what the whole app is
+about. The plan body above still refers to the original directory name; that is left as the historical record.
+
+The rename also moved three persisted keys, which is why it was worth doing before any real use:
+
+- `grid-preview-store` becomes `griddle-store` (AsyncStorage, all accounts and posts)
+- `grid-preview-media` becomes `griddle-media` (IndexedDB blob store on web)
+- `grid-preview-backup.json` becomes `griddle-backup.json` (export filename)
+
+Data written under the old keys is not migrated and is invisible to the renamed app. That was acceptable while the
+only data was test data. Doing the same rename after release would need a migration in `migratePersistedState`.
