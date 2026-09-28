@@ -45,7 +45,7 @@ const RootLayout = () => {
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="posts/new" options={{ presentation: 'modal', title: 'New post' }} />
-          <Stack.Screen name="posts/[id]/index" options={{ title: 'Post' }} />
+          <Stack.Screen name="posts/[id]/index" options={{ title: 'Posts' }} />
           <Stack.Screen name="posts/[id]/edit" options={{ title: 'Edit post' }} />
           <Stack.Screen name="archived-posts/index" options={{ title: 'Archive' }} />
           <Stack.Screen

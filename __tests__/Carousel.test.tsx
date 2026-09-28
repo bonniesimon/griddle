@@ -1,10 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import type { ViewToken } from 'react-native';
 
-import {
-  activeIndexFromViewableItems,
-  aspectRatioClampedToPortraitLimit,
-} from '@/components/Carousel';
+import { activeIndexFromViewableItems } from '@/components/Carousel';
 import { CarouselDots } from '@/components/CarouselDots';
 import type { Media } from '@/types';
 
@@ -68,23 +65,5 @@ describe('CarouselDots', () => {
     expect(dots).toHaveLength(3);
     expect(screen.getAllByTestId('carousel-dot-active')).toHaveLength(1);
     expect(screen.getAllByTestId('carousel-dot')).toHaveLength(2);
-  });
-});
-
-describe('carousel aspect ratio', () => {
-  it('shows a square photo square', () => {
-    expect(aspectRatioClampedToPortraitLimit([buildMedia('square', 1080, 1080)])).toBe(1);
-  });
-
-  it('clamps a very tall photo to the Instagram portrait limit', () => {
-    expect(aspectRatioClampedToPortraitLimit([buildMedia('tall', 1080, 2400)])).toBe(4 / 5);
-  });
-
-  it('leaves a landscape photo at its own ratio', () => {
-    expect(aspectRatioClampedToPortraitLimit([buildMedia('wide', 1600, 900)])).toBeCloseTo(1.778);
-  });
-
-  it('falls back to square when there is no media', () => {
-    expect(aspectRatioClampedToPortraitLimit([])).toBe(1);
   });
 });

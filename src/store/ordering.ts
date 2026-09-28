@@ -25,6 +25,17 @@ export const archivedPostsNewestFirst = (posts: Post[], accountId: string) =>
 export const unarchivedPostCount = (posts: Post[], accountId: string) =>
   gridPostsInDisplayOrder(posts, accountId).length;
 
+export const feedPostsAlongside = (posts: Post[], anchorPost: Post) =>
+  anchorPost.isArchived
+    ? archivedPostsNewestFirst(posts, anchorPost.accountId)
+    : gridPostsInDisplayOrder(posts, anchorPost.accountId);
+
+export const anchorIndexInFeed = (feedPosts: Post[], anchorPostId: string) =>
+  Math.max(
+    feedPosts.findIndex((post) => post.id === anchorPostId),
+    0
+  );
+
 const withGridPositionsReassigned = (gridOrder: Post[]) =>
   gridOrder.map((post, index) =>
     post.gridPosition === index ? post : { ...post, gridPosition: index }
