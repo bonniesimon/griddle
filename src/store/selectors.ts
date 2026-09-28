@@ -1,5 +1,14 @@
+import { useMemo } from 'react';
+
+import type { Post } from '@/types';
+
 import { useAppStore } from './useAppStore';
-import { archivedPostsNewestFirst, gridPostsInDisplayOrder, unarchivedPostCount } from './ordering';
+import {
+  archivedPostsNewestFirst,
+  feedPostsAlongside,
+  gridPostsInDisplayOrder,
+  unarchivedPostCount,
+} from './ordering';
 
 export const useActiveAccount = () =>
   useAppStore((state) => state.accounts.find((account) => account.id === state.activeAccountId));
@@ -22,6 +31,14 @@ export const useVisiblePostCount = () => {
   const activeAccountId = useAppStore((state) => state.activeAccountId);
   const posts = useAppStore((state) => state.posts);
   return activeAccountId ? unarchivedPostCount(posts, activeAccountId) : 0;
+};
+
+export const useFeedPostsAlongside = (anchorPost: Post | undefined) => {
+  const posts = useAppStore((state) => state.posts);
+  return useMemo(
+    () => (anchorPost ? feedPostsAlongside(posts, anchorPost) : []),
+    [posts, anchorPost]
+  );
 };
 
 export const usePost = (postId: string | undefined) =>

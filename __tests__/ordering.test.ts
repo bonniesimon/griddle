@@ -1,7 +1,9 @@
 import {
   addPostsToTopOfGrid,
+  anchorIndexInFeed,
   archivePost,
   archivedPostsNewestFirst,
+  feedPostsAlongside,
   gridPostsInDisplayOrder,
   moveMediaWithinPost,
   movePostToGridPosition,
@@ -361,5 +363,55 @@ describe('media ordering within a post', () => {
     const post = postWithMedia(0);
 
     expect(moveMediaWithinPost(post, 9, 0)).toEqual(post);
+  });
+});
+
+describe('the feed alongside a post', () => {
+  const archivedPost = (id: string, archivedAt: number) =>
+    buildPost({ id, gridPosition: 0, isArchived: true, archivedAt });
+
+  it('scrolls an unarchived post through the grid, in grid order', () => {
+    const anchorPost = buildPost({ id: 'anchor', gridPosition: 1 });
+    const posts = [
+      buildPost({ id: 'above', gridPosition: 0 }),
+      anchorPost,
+      buildPost({ id: 'below', gridPosition: 2 }),
+      archivedPost('archived', 5_000),
+    ];
+
+    const feedIds = feedPostsAlongside(posts, anchorPost).map((post) => post.id);
+
+    expect(feedIds).toEqual(['above', 'anchor', 'below']);
+  });
+
+  it('scrolls an archived post through the archive, newest first', () => {
+    const older = archivedPost('archived-older', 1_000);
+    const newer = archivedPost('archived-newer', 9_000);
+    const posts = [...buildGrid(2), older, newer];
+
+    expect(feedPostsAlongside(posts, older).map((post) => post.id)).toEqual([
+      'archived-newer',
+      'archived-older',
+    ]);
+  });
+
+  it('never mixes in the posts of another account', () => {
+    const anchorPost = buildPost({ id: 'anchor', gridPosition: 0 });
+    const posts = [anchorPost, ...buildGrid(2, OTHER_ACCOUNT)];
+
+    const feedAccountIds = feedPostsAlongside(posts, anchorPost).map((post) => post.accountId);
+
+    expect(feedAccountIds).toEqual([ACCOUNT]);
+  });
+
+  it('finds where in the feed the tapped post sits', () => {
+    const feedPosts = buildGrid(5);
+    const feedIds = feedPosts.map((post) => post.id);
+
+    expect(feedIds.map((feedId) => anchorIndexInFeed(feedPosts, feedId))).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('opens at the top when the post is missing from its own feed', () => {
+    expect(anchorIndexInFeed(buildGrid(3), 'post-that-was-deleted')).toBe(0);
   });
 });

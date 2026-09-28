@@ -5,6 +5,8 @@ import { usePalette } from '@/theme/usePalette';
 
 const DOT_DIAMETER = 6;
 
+export const CAROUSEL_DOTS_HEIGHT = DOT_DIAMETER + spacing.snug * 2;
+
 type CarouselDotsProps = {
   dotCount: number;
   activeIndex: number;
@@ -33,11 +35,11 @@ export const CarouselDots = ({ dotCount, activeIndex }: CarouselDotsProps) => {
 
 const styles = StyleSheet.create({
   row: {
+    height: CAROUSEL_DOTS_HEIGHT,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.tight,
-    paddingVertical: spacing.snug,
   },
   dot: {
     width: DOT_DIAMETER,

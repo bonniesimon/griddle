@@ -6,19 +6,13 @@ import { resolveMediaUri } from '@/storage/mediaStore';
 import type { Media } from '@/types';
 
 import { CarouselDots } from './CarouselDots';
+import { mediaHeightFor } from './feedItemLayout';
 
 const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 60 };
-const TALLEST_ALLOWED_ASPECT_RATIO = 4 / 5;
 
 type CarouselProps = {
   media: Media[];
   onActiveIndexChange?: (activeIndex: number) => void;
-};
-
-export const aspectRatioClampedToPortraitLimit = (media: Media[]) => {
-  const firstMedia = media[0];
-  if (!firstMedia || firstMedia.height === 0) return 1;
-  return Math.max(firstMedia.width / firstMedia.height, TALLEST_ALLOWED_ASPECT_RATIO);
 };
 
 export const activeIndexFromViewableItems = (viewableItems: ViewToken[]) => {
@@ -29,7 +23,7 @@ export const activeIndexFromViewableItems = (viewableItems: ViewToken[]) => {
 export const Carousel = ({ media, onActiveIndexChange }: CarouselProps) => {
   const { width: screenWidth } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
-  const aspectRatio = aspectRatioClampedToPortraitLimit(media);
+  const slideHeight = mediaHeightFor(media, screenWidth);
 
   const onActiveIndexChangeRef = useRef(onActiveIndexChange);
 
@@ -48,13 +42,14 @@ export const Carousel = ({ media, onActiveIndexChange }: CarouselProps) => {
     ({ item }: { item: Media }) => (
       <Image
         source={{ uri: resolveMediaUri(item.fullResolutionPath) }}
-        style={{ width: screenWidth, aspectRatio }}
+        style={{ width: screenWidth, height: slideHeight }}
         contentFit="cover"
         transition={150}
         cachePolicy="memory-disk"
+        recyclingKey={item.id}
       />
     ),
-    [screenWidth, aspectRatio]
+    [screenWidth, slideHeight]
   );
 
   return (
